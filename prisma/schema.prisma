@@ -38,4 +38,16 @@ model MOP {
   createdBy   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  reviews     Review[]
+}
+
+model Review {
+  id          String  @id @default(uuid())
+  mopId       String
+  reviewerId  String
+  status      String  // pending, approved, rejected
+  comments    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  mop         MOP     @relation(fields: [mopId], references: [id])
 }

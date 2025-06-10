@@ -130,36 +130,40 @@ app.post('/api/auth/register', [
   }
 });
 
-const { upload, processDocument } = require('./document/document');
+// Document endpoints
+const { upload, processDocument, getDocumentStatus, listDocuments, deleteDocument } = require('./document/document');
 
 // Document upload endpoint
 app.post('/api/documents', upload.single('document'), processDocument);
 
 // Document status endpoint
-app.get('/api/documents/:id/status', async (req, res) => {
-  const { id } = req.params;
-  // For MVP, we'll simulate processing status
-  const doc = await prisma.document.findFirst({
-    where: {
-      id: req.params.id
-    }
-  });
+app.get('/api/documents/:id/status', getDocumentStatus);
 
-  if (!doc) {
-    return res.status(404).json({ message: 'Document not found' });
-  }
+// Document list endpoint
+app.get('/api/documents', listDocuments);
 
-  const statuses = ['queued', 'processing', 'completed'];
-  const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-  res.json({ id, status: randomStatus });
-});
+// Document delete endpoint
+app.delete('/api/documents/:id', deleteDocument);
 
-const { generateMOP } = require('./mop/mop');
+// MOP endpoints
+const { generateMOP, getMOP, listMOPs, updateMOP, deleteMOP } = require('./mop/mop');
 
 // MOP generation endpoint
 app.post('/api/mops', [
   check('documentId', 'Document ID is required').notEmpty()
 ], generateMOP);
+
+// Get MOP by ID
+app.get('/api/mops/:id', getMOP);
+
+// List all MOPs
+app.get('/api/mops', listMOPs);
+
+// Update MOP
+app.put('/api/mops/:id', updateMOP);
+
+// Delete MOP
+app.delete('/api/mops/:id', deleteMOP);
 
 const { createVersion, getVersion, listVersions } = require('./version/version');
 
@@ -168,16 +172,40 @@ app.post('/api/versions', createVersion);
 app.get('/api/versions/:id', getVersion);
 app.get('/api/versions/document/:documentId', listVersions);
 
-// Endpoint to list all documents
-app.get('/api/documents', async (req, res) => {
-  try {
-    const documents = await prisma.document.findMany();
-    res.json(documents);
-  } catch (error) {
-    console.error('Error listing documents:', error);
-    res.status(500).json({ message: 'Error listing documents' });
-  }
-});
+// Review endpoints
+const { 
+  createReview, 
+  getReview, 
+  listReviews, 
+  updateReview, 
+  deleteReview,
+  approveMOP,
+  rejectMOP,
+  getPendingReviews
+} = require('./review/review');
+
+// Review CRUD endpoints
+app.post('/api/reviews', [
+  check('mopId', 'MOP ID is required').notEmpty()
+], createReview);
+app.get('/api/reviews/:id', getReview);
+app.get('/api/mops/:mopId/reviews', listReviews);
+app.put('/api/reviews/:id', updateReview);
+app.delete('/api/reviews/:id', deleteReview);
+
+// MOP approval/rejection endpoints
+app.post('/api/mops/:id/approve', approveMOP);
+app.post('/api/mops/:id/reject', rejectMOP);
+
+// Get pending reviews
+app.get('/api/reviews/pending', getPendingReviews);
+
+// Export endpoints
+const { exportMOP } = require('./export/export');
+
+// Export MOP
+app.get('/api/mops/:id/export', exportMOP);
+
 
 module.exports = app;
 
