@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "express-validator": "^7.2.1",
+    "minio": "^8.0.5",
+    "multer": "^2.0.1",
+    "pg": "^8.16.0",
+    "prisma": "^6.9.0"
+  },
+  "scripts": {
+    "db:seed": "node prisma/seed.js",
+    "dev": "nodemon backend/app.js"
+  },
+  "devDependencies": {
+    "esbuild-register": "^3.6.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2"
+  }
+}
