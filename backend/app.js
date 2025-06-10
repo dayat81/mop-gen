@@ -1,5 +1,13 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+
+const loginLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour window
+  max: 5, // max 5 attempts per window
+  message: 'Too many login attempts from this IP, please try again after an hour'
+});
 const jwt = require('jsonwebtoken');
 const { check, validationResult } = require('express-validator');
 const multer = require('multer');
@@ -69,7 +77,7 @@ app.use(express.json());
 
 // Authentication endpoint
 const { login } = require('./auth/auth');
-app.post('/api/auth/login', [
+app.post('/api/auth/login', loginLimiter, [
   check('username', 'Username is required').notEmpty(),
   check('password', 'Password is required').notEmpty()
 ], async (req, res) => {
@@ -92,7 +100,10 @@ app.post('/api/auth/login', [
 // Registration endpoint
 app.post('/api/auth/register', [
   check('username', 'Username is required').notEmpty(),
-  check('password', 'Password is required').notEmpty(),
+  check('password', 'Password is required').notEmpty()
+  .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+  .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/)
+  .withMessage('Password must include at least one uppercase letter, one lowercase letter, one number, and one special character'),
   check('email', 'Email is required').isEmail()
 ], async (req, res) => {
   const errors = validationResult(req);

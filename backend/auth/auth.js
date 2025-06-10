@@ -22,7 +22,7 @@ async function login(username, password) {
   }
 
   // Create JWT token
-  const token = jwt.sign({ userId: user.username }, 'secret_key', {
+  const token = jwt.sign({ userId: user.username }, process.env.JWT_SECRET, {
     expiresIn: '1h'
   });
 

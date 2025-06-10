@@ -34,6 +34,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
+// TODO: Investigate and address the dicer vulnerability in multer's dependencies.
 
 // Cognee RAG API configuration
 const cogneeApiUrl = 'http://localhost:8000';
