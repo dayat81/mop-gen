@@ -7,13 +7,18 @@ const fs = require('fs');
 const path = require('path');
 const Minio = require('minio');
 const { PrismaClient } = require('@prisma/client');
+const axios = require('axios');
 
 // Initialize Prisma
 const prisma = new PrismaClient();
 
+// Initialize Cognee RAG client
+const cogneeRAGApiUrl = 'http://localhost:8000/process'; // Replace with actual URL
+const cogneeRAGApiKey = 'your-api-key'; // Replace with actual API key
+
 // Initialize MinIO client
 const minioClient = new Minio.Client({
-  endPoint: 'localhost',
+  endPoint: '127.0.0.1',
   port: 9000,
   useSSL: false,
   accessKey: 'minioadmin',
@@ -110,23 +115,40 @@ app.post('/api/documents', upload.single('document'), async (req, res) => {
   try {
     await minioClient.fPutObject(bucketName, fileName, file.path, { 'Content-Type': file.mimetype });
 
-    // Store document information in database
-    const doc = await prisma.document.create({
-      data: {
-        uploadedBy: 'admin', // Temporarily hardcoded
-        filename: file.originalname,
-        filePath: fileName, // Store MinIO file path
-        status: 'uploaded',
-        metadata: {},
-        extractedData: {}
-      }
-    });
-    const documentId = doc.id;
+    // Send document to Cognee RAG for processing
+    try {
+      const cogneeResponse = await axios.post('http://localhost:8000/process', {
+        documentPath: fileName, // Send MinIO file path
+        documentType: file.mimetype
+      }, {
+        headers: {
+          'X-API-Key': 'your-api-key'
+        }
+      });
 
-    // Delete the local file
-    fs.unlinkSync(path.resolve(file.path));
+      const extractedData = cogneeResponse.data;
 
-    res.json({ documentId });
+      // Store document information in database
+      const doc = await prisma.document.create({
+        data: {
+          uploadedBy: 'admin', // Temporarily hardcoded
+          filename: file.originalname,
+          filePath: fileName, // Store MinIO file path
+          status: 'uploaded',
+          metadata: {},
+          extractedData: extractedData
+        }
+      });
+      const documentId = doc.id;
+
+      // Delete the local file
+      fs.unlinkSync(path.resolve(file.path));
+
+      res.json({ documentId });
+    } catch (cogneeErr) {
+      console.error('Error processing document with Cognee RAG:', cogneeErr);
+      return res.status(500).json({ message: 'Error processing document with Cognee RAG' });
+    }
   } catch (err) {
     console.error('Error uploading file:', err);
     return res.status(500).json({ message: 'Error uploading file' });
@@ -195,10 +217,27 @@ app.post('/api/mops', [
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log('Uploads directory:', 'uploads/');
-  await prisma.$connect();
-  console.log('Connected to database');
+  try {
+    await prisma.$connect();
+    console.log('Connected to database');
+  } catch (error) {
+    console.error('Error connecting to database:', error);
+  }
+
+  // Test database connection and Cognee RAG integration
+  try {
+    const testDocument = await prisma.document.findFirst({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    console.log('Test document:', testDocument);
+  } catch (error) {
+    console.error('Error fetching test document:', error);
+  }
 });
