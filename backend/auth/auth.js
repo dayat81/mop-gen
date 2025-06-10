@@ -2,15 +2,22 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const bcrypt = require('bcrypt');
+
 async function login(username, password) {
   const user = await prisma.user.findFirst({
     where: {
-      username,
-      password
-    }
+      username
+    },
   });
 
   if (!user) {
+    return null;
+  }
+
+  const passwordMatch = await bcrypt.compare(password, user.password);
+  
+  if (!passwordMatch) {
     return null;
   }
 

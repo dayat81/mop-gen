@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres:postgres@localhost:5432/mop_gen"
+  url      = "postgresql://postgres:postgres@localhost:5432/mop_gen?schema=public"
 }
 
 model User {

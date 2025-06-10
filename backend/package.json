@@ -4,15 +4,21 @@
   "description": "Backend for MOP Generation Application",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+    "test": "npx dotenv-cli -e .env jest --watchAll --no-cache"
   },
   "dependencies": {
+    "bcrypt": "^5.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "dotenv-cli": "^8.0.0",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.0",
-    "cors": "^2.8.5",
     "multer": "^1.4.2",
-    "fs": "^2.0.0",
     "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.0.0"
   }
 }

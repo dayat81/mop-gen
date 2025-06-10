@@ -8,6 +8,7 @@ const path = require('path');
 const Minio = require('minio');
 const { PrismaClient } = require('@prisma/client');
 const axios = require('axios');
+const bcrypt = require('bcrypt');
 
 // Initialize Prisma
 const prisma = new PrismaClient();
@@ -88,6 +89,47 @@ app.post('/api/auth/login', [
   res.json(result);
 });
 
+// Registration endpoint
+app.post('/api/auth/register', [
+  check('username', 'Username is required').notEmpty(),
+  check('password', 'Password is required').notEmpty(),
+  check('email', 'Email is required').isEmail()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { username, password, email } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        username: username,
+      },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ message: 'Username already exists' });
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+        email,
+      },
+    });
+
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ message: 'Error registering user' });
+  }
+});
+
 const { upload, processDocument } = require('./document/document');
 
 // Document upload endpoint
@@ -137,9 +179,11 @@ app.get('/api/documents', async (req, res) => {
   }
 });
 
+module.exports = app;
+
 // Start server
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, async () => {
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log('Uploads directory:', 'uploads/');
   try {
